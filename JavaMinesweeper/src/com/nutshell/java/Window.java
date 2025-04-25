@@ -85,14 +85,10 @@ public class Window {
                             return;
                         }
 
-                        if (minesweeper.getVisited()[row][col]) {
-                            
-                        } else {
-                            if (SwingUtilities.isLeftMouseButton(e)) {
-                                tileClicked(row, col);
-                            } else if (SwingUtilities.isRightMouseButton(e)) {
-                                tileFlagged(row, col);
-                            }
+                        if (SwingUtilities.isLeftMouseButton(e)) {
+                            tileClicked(row, col);
+                        } else if (SwingUtilities.isRightMouseButton(e)) {
+                            tileFlagged(row, col);
                         }
                     }
                 });
@@ -104,6 +100,13 @@ public class Window {
 
     public void tileClicked(int row, int column) {
         System.out.println("Tile at " + column + ", " + row + " clicked");
+
+        if (minesweeper.getFlagged()[row][column]) {
+            System.out.println("Tile Flagged");
+            return;
+        }
+
+        boolean visitedAlready = minesweeper.getVisited()[row][column];
 
         minesweeper.visitTile(row, column);
         drawScreen();
@@ -140,6 +143,9 @@ public class Window {
 
             countdownThread.start();
         } else {
+            if (visitedAlready && (minesweeper.getNearMines(row, column) - minesweeper.getNearFlags(row, column) <= 0)) {
+                minesweeper.visitAdjacentTiles(row, column);
+            }
             System.out.println("Safe");
         }
     }
@@ -148,6 +154,7 @@ public class Window {
         System.out.println("Tile at " + column + ", " + row + " flagged");
 
         minesweeper.flagTile(row, column);
+        drawScreen();
     }
 
     public void drawScreen() {
@@ -158,7 +165,6 @@ public class Window {
                 if (minesweeper.getVisited()[i][j]) {
                     switch (minesweeper.getGrid()[i][j]) {
                         case 1 -> {
-                            System.out.println("Drawing");
                             tile.setBackground(bombColor);
                             tile.setForeground(Color.WHITE);
                             
@@ -166,10 +172,6 @@ public class Window {
                             Image image = boomImage.getImage();
                             Image scaledImage = image.getScaledInstance(tile.getWidth(), tile.getHeight(), Image.SCALE_SMOOTH);
                             tile.setIcon(new ImageIcon(scaledImage));
-
-                            // tile.setText("X");
-
-                            System.out.println("Drawing");
                         }
                         case 0 -> {
                             tile.setBackground(checkedColor);
@@ -182,10 +184,10 @@ public class Window {
                             // Make a border around the tile, but only on the sides with unchecked neghbhors
                             boolean[] borderSides = new boolean[4];
 
-                            if (i - 1 >= 0 && !minesweeper.getVisited()[i - 1][j]) {borderSides[0] = true;}
-                            if (j - 1 >= 0 && !minesweeper.getVisited()[i][j - 1]) {borderSides[1] = true;}
-                            if (i + 1 < minesweeper.getWidth() && !minesweeper.getVisited()[i + 1][j]) {borderSides[2] = true;}
-                            if (j + 1 < minesweeper.getHeight() && !minesweeper.getVisited()[i][j + 1]) {borderSides[3] = true;}
+                            if (i - 1 >= 0 && !minesweeper.getVisited()[i - 1][j] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i - 1][j] == 1)) {borderSides[0] = true;}
+                            if (j - 1 >= 0 && !minesweeper.getVisited()[i][j - 1] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i][j - 1] == 1)) {borderSides[1] = true;}
+                            if (i + 1 < minesweeper.getWidth() && !minesweeper.getVisited()[i + 1][j] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i + 1][j] == 1)) {borderSides[2] = true;}
+                            if (j + 1 < minesweeper.getHeight() && !minesweeper.getVisited()[i][j + 1] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i][j + 1] == 1)) {borderSides[3] = true;}
 
                             Border border1 = BorderFactory.createCompoundBorder(
                                 borderSides[0] ? BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLACK) : BorderFactory.createEmptyBorder(),
@@ -204,7 +206,17 @@ public class Window {
                     }
                     
                 } else {
-                    tile.setBackground(uncheckedColor);
+                    if (minesweeper.getFlagged()[i][j]) {
+                        tile.setBackground(checkedColor);
+                        
+                        Image image = flagImage.getImage();
+                        Image scaledImage = image.getScaledInstance(tile.getWidth(), tile.getHeight(), Image.SCALE_SMOOTH);
+                        tile.setIcon(new ImageIcon(scaledImage));
+                    } else {
+                        tile.setIcon(null);
+                        tile.setBackground(uncheckedColor);
+                        tile.setText("");
+                    }
                 }
             }
         }

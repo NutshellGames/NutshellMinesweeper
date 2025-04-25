@@ -1,5 +1,7 @@
 package com.nutshell.java;
 
+import java.util.ArrayList;
+
 public class Minesweeper {
     private int[][] grid;
     private boolean[][] visited;
@@ -9,11 +11,13 @@ public class Minesweeper {
     public Minesweeper(int rows, int columns, int mines) {
         grid = new int[rows][columns];
         visited = new boolean[rows][columns];
+        flagged = new boolean[rows][columns];
 
         for (int row = 0; row < rows; row++) {
             for (int column = 0; column < columns; column++) {
                 grid[row][column] = 0;
                 visited[row][column] = false;
+                flagged[row][column] = false;
             }
         }
 
@@ -55,109 +59,100 @@ public class Minesweeper {
     }
 
     public void visitAdjacentTiles(int row, int column) {
-        if (row - 1 >= 0) {
-            if (column - 1 >= 0) {
-                if (grid[row - 1][column - 1] != 2 && !visited[row - 1][column - 1]) {
-                    visitTile(row - 1, column - 1);
-                }
-            }
+        ArrayList<int[]> adjacentTiles = getAdjacentTiles(row, column);
 
-            if (grid[row - 1][column] != 2 && !visited[row - 1][column]) {
-                visitTile(row - 1, column);
-            }
+        for (int[] tile : adjacentTiles) {
+            int tileRow = tile[0];
+            int tileColumn = tile[1];
 
-            if (column + 1 < grid[row].length) {
-                if (grid[row - 1][column + 1] != 2 && !visited[row - 1][column + 1]) {
-                    visitTile(row - 1, column + 1);
-                }
-            }
-        }
+            if (!visited[tileRow][tileColumn] && !flagged[tileRow][tileColumn]) {
+                visited[tileRow][tileColumn] = true;
 
-        if (column - 1 >= 0) {
-            if (grid[row][column - 1] != 2 && !visited[row][column - 1]) {
-                visitTile(row, column - 1);
-            }
-        }
-
-        if (column + 1 < grid[row].length) {
-            if (grid[row][column + 1] != 2 && !visited[row][column + 1]) {
-                visitTile(row, column + 1);
-            }
-        }
-
-        if (row + 1 < grid.length) {
-            if (column - 1 >= 0) {
-                if (grid[row + 1][column - 1] != 2 && !visited[row + 1][column - 1]) {
-                    visitTile(row + 1, column - 1);
-                }
-            }
-
-            if (grid[row + 1][column] != 2 && !visited[row + 1][column]) {
-                visitTile(row + 1, column);
-            }
-
-            if (column + 1 < grid[row].length) {
-                if (grid[row + 1][column + 1] != 2 && !visited[row + 1][column + 1]) {
-                    visitTile(row + 1, column + 1);
+                if (getNearMines(tileRow, tileColumn) == 0) {
+                    visitAdjacentTiles(tileRow, tileColumn);
                 }
             }
         }
     }
 
-    public void flagTile(int row, int column) {grid[row][column] = 2;}
-
-    public int getNearMines(int row, int column) {
-        int mines = 0;
+    public ArrayList<int[]> getAdjacentTiles(int row, int column) {
+        ArrayList<int[]> adjacentTiles = new ArrayList<>();
 
         if (row - 1 >= 0) {
             if (column - 1 >= 0) {
-                if (grid[row - 1][column - 1] != 2) {
-                    mines += grid[row - 1][column - 1];
-                }
+                adjacentTiles.add(new int[]{row - 1, column - 1});
             }
 
-            if (grid[row - 1][column] != 2) {
-                mines += grid[row - 1][column];
-            }
+            adjacentTiles.add(new int[]{row - 1, column});
 
             if (column + 1 < grid[row].length) {
-                if (grid[row - 1][column + 1] != 2) {
-                    mines += grid[row - 1][column + 1];
-                }
+                adjacentTiles.add(new int[]{row - 1, column + 1});
             }
         }
 
         if (column - 1 >= 0) {
-            if (grid[row][column - 1] != 2) {
-                mines += grid[row][column - 1];
-            }
+            adjacentTiles.add(new int[]{row, column - 1});
         }
 
         if (column + 1 < grid[row].length) {
-            if (grid[row][column + 1] != 2) {
-                mines += grid[row][column + 1];
-            }
+            adjacentTiles.add(new int[]{row, column + 1});
         }
 
         if (row + 1 < grid.length) {
             if (column - 1 >= 0) {
-                if (grid[row + 1][column - 1] != 2) {
-                    mines += grid[row + 1][column - 1];
-                }
+                adjacentTiles.add(new int[]{row + 1, column - 1});
             }
 
-            if (grid[row + 1][column] != 2) {
-                mines += grid[row + 1][column];
-            }
+            adjacentTiles.add(new int[]{row + 1, column});
 
             if (column + 1 < grid[row].length) {
-                if (grid[row + 1][column + 1] != 2) {
-                    mines += grid[row + 1][column + 1];
-                }
+                adjacentTiles.add(new int[]{row + 1, column + 1});
+            }
+        }
+
+        return adjacentTiles;
+    }
+
+    public boolean[][] getFlagged() {return flagged;}
+
+    public void flagTile(int row, int column) {flagged[row][column] = true;}
+
+    public void unflagTile(int row, int column) {flagged[row][column] = false;}
+
+    public int getMinesLeft() {return minesLeft;}
+
+    public int getNearMines(int row, int column) {
+        int mines = 0;
+
+        ArrayList<int[]> adjacentTiles = getAdjacentTiles(row, column);
+
+        for (int[] tile : adjacentTiles) {
+            int tileRow = tile[0];
+            int tileColumn = tile[1];
+
+            if (grid[tileRow][tileColumn] == 1) {
+                mines++;
             }
         }
 
         return mines;
+    }
+
+    public int getNearFlags(int row, int column) {
+        int flags = 0;
+
+        ArrayList<int[]> adjacentTiles = getAdjacentTiles(row, column);
+
+        for (int[] tile : adjacentTiles) {
+            int tileRow = tile[0];
+            int tileColumn = tile[1];
+
+            if (flagged[tileRow][tileColumn]) {
+                flags++;
+            }
+        }
+
+        return flags;
     }
 
     public String toString(int type) {
@@ -195,7 +190,7 @@ public class Minesweeper {
                                 result.append("-1 ");
                             }
                         } else {
-                            if (grid[row][column] == 2) {
+                            if (flagged[row][column]) {
                                 result.append("9  ");
                             } else {
                                 result.append("X  ");
