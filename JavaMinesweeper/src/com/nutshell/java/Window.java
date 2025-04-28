@@ -13,8 +13,9 @@ public class Window {
     JPanel panel;
     JLabel gameOverText;
 
-    int width,height;
+    int width,height,mines;
     Minesweeper minesweeper;
+    boolean gameGenerated = false;
 
     Color uncheckedColor = new Color(143, 213, 255);
     Color checkedColor = new Color(204, 234, 252);
@@ -30,12 +31,14 @@ public class Window {
     ImageIcon flagImage = new ImageIcon(flagURL);
 
     boolean gameOver = false;
+    boolean gameWon = false;
 
-    public Window(Minesweeper minesweeper) {
+    public Window(int width, int height, int mines) {
         this.minesweeper = minesweeper;
 
-        width = minesweeper.getWidth();
-        height = minesweeper.getHeight();
+        this.width = width;
+        this.height = height;
+        this.mines = mines;
 
         frame = new JFrame();
         frame.setTitle("Minesweeper");
@@ -99,54 +102,46 @@ public class Window {
     }
 
     public void tileClicked(int row, int column) {
-        System.out.println("Tile at " + column + ", " + row + " clicked");
+        if (gameGenerated) {
+            System.out.println("Tile at " + column + ", " + row + " clicked");
 
-        if (minesweeper.getFlagged()[row][column]) {
-            System.out.println("Tile Flagged");
-            return;
-        }
-
-        boolean visitedAlready = minesweeper.getVisited()[row][column];
-
-        minesweeper.visitTile(row, column);
-        drawScreen();
-
-        if (minesweeper.getTile(row, column) == 1) {
-            System.out.println("Game Over");
-            gameOver = true;
-
-            AtomicInteger countdown = new AtomicInteger(5);
-
-            Thread countdownThread = new Thread(() -> {
-                gameOverText.setVisible(true);
-                gameOverText.setOpaque(true);
-                gameOverText.setBackground(Color.RED);
-                gameOverText.setForeground(Color.WHITE);
-
-                frame.setComponentZOrder(panel, 1);
-                frame.setComponentZOrder(gameOverText, 1);
-
-                while (countdown.intValue() > 0) {
-                    System.out.println("Application will close in " + countdown);
-                    countdown.decrementAndGet();
-
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        System.exit(1);
-                    }
-                    
-                }
-
-                System.exit(0);
-            });
-
-            countdownThread.start();
-        } else {
-            if (visitedAlready && (minesweeper.getNearMines(row, column) - minesweeper.getNearFlags(row, column) <= 0)) {
-                minesweeper.visitAdjacentTiles(row, column);
+            if (minesweeper.getFlagged()[row][column]) {
+                System.out.println("Tile Flagged");
+                return;
             }
-            System.out.println("Safe");
+
+            boolean visitedAlready = minesweeper.getVisited()[row][column];
+
+            minesweeper.visitTile(row, column);
+            drawScreen();
+
+            if (minesweeper.getTile(row, column) == 1) {
+                System.out.println("Game Over");
+                gameLost();
+            } else {
+                if (visitedAlready && (minesweeper.getNearMines(row, column) - minesweeper.getNearFlags(row, column) <= 0)) {
+                    minesweeper.visitAdjacentTiles(row, column);
+                    drawScreen();
+
+                    if (minesweeper.getNearUnflaggedMines(row, column) > 0) {
+                        System.out.println("Game Over");
+                        gameLost();
+                    }
+                }
+                System.out.println("Safe");
+            }
+        } else {
+            System.out.println("Generating Game...");
+            
+            this.minesweeper = new Minesweeper(width, height, mines, row, column);
+            gameGenerated = true;
+
+            System.out.println("Game Generated");
+
+            minesweeper.visitTile(row, column);
+            
+
+            drawScreen();
         }
     }
 
@@ -157,9 +152,44 @@ public class Window {
         drawScreen();
     }
 
+    public void gameLost() {
+        gameOver = true;
+
+        AtomicInteger countdown = new AtomicInteger(5);
+
+        Thread countdownThread = new Thread(() -> {
+            gameOverText.setVisible(true);
+            gameOverText.setOpaque(true);
+            gameOverText.setBackground(Color.RED);
+            gameOverText.setForeground(Color.WHITE);
+
+            frame.setComponentZOrder(panel, 1);
+            frame.setComponentZOrder(gameOverText, 1);
+
+            while (countdown.intValue() > 0) {
+                System.out.println("Application will close in " + countdown);
+                countdown.decrementAndGet();
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    System.exit(1);
+                }
+                    
+            }
+
+            System.exit(0);
+        });
+
+        countdownThread.start();
+    }
+
     public void drawScreen() {
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                System.out.println("Drawing tile at " + i + ", " + j);
+                System.out.println("Tile Visited: " + minesweeper.getVisited()[i][j] + "\n");
+
                 JLabel tile = (JLabel) panel.getComponent(i * width + j);
 
                 if (minesweeper.getVisited()[i][j]) {
@@ -184,6 +214,7 @@ public class Window {
                             // Make a border around the tile, but only on the sides with unchecked neghbhors
                             boolean[] borderSides = new boolean[4];
 
+                            System.out.println("Checking if " + (i - 1) + " is greater than 0: " + (i - 1 >= 0));
                             if (i - 1 >= 0 && !minesweeper.getVisited()[i - 1][j] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i - 1][j] == 1)) {borderSides[0] = true;}
                             if (j - 1 >= 0 && !minesweeper.getVisited()[i][j - 1] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i][j - 1] == 1)) {borderSides[1] = true;}
                             if (i + 1 < minesweeper.getWidth() && !minesweeper.getVisited()[i + 1][j] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i + 1][j] == 1)) {borderSides[2] = true;}

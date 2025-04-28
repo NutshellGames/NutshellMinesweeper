@@ -8,7 +8,9 @@ public class Minesweeper {
     private boolean[][] flagged;
     private int minesLeft;
 
-    public Minesweeper(int rows, int columns, int mines) {
+    public Minesweeper(int rows, int columns, int mines, int startingRow, int startingColumn) {
+        System.out.println(rows + " " + columns + " " + mines + " " + startingRow + " " + startingColumn);
+
         grid = new int[rows][columns];
         visited = new boolean[rows][columns];
         flagged = new boolean[rows][columns];
@@ -28,7 +30,7 @@ public class Minesweeper {
 
             // System.out.println(row + " " + column);
 
-            if (grid[row][column] == 0 && (row != (int) ((double) grid.length / 2) || column != (int) ((double) grid[row].length / 2 + 0.5))) {
+            if (grid[row][column] == 0 && ((row != startingRow && column != startingColumn) && (row != startingRow - 1 && column != startingColumn) && (row != startingRow && column != startingColumn - 1) && (row != startingRow - 1 && column != startingColumn - 1) && (row != startingRow - 1 && column != startingColumn + 1) && (row != startingRow + 1 && column != startingColumn) && (row != startingRow + 1 && column != startingColumn - 1) && (row != startingRow + 1 && column != startingColumn + 1) && (row != startingRow && column != startingColumn + 1))) {
                 grid[row][column] = 1;
 
                 plantCount--;
@@ -51,6 +53,8 @@ public class Minesweeper {
     public void setVisited(boolean[][] visited) {this.visited = visited;}
 
     public void visitTile(int row, int column) {
+        System.out.println("Visiting tile " + row + ", " + column);
+
         visited[row][column] = true;
 
         if (grid[row][column] != 1 && getNearMines(row, column) == 0) {
@@ -153,6 +157,23 @@ public class Minesweeper {
         }
 
         return flags;
+    }
+
+    public int getNearUnflaggedMines(int row, int column) {
+        int mines = 0;
+
+        ArrayList<int[]> adjacentTiles = getAdjacentTiles(row, column);
+
+        for (int[] tile : adjacentTiles) {
+            int tileRow = tile[0];
+            int tileColumn = tile[1];
+
+            if (grid[tileRow][tileColumn] == 1 && !flagged[tileRow][tileColumn]) {
+                mines++;
+            }
+        }
+
+        return mines;
     }
 
     public String toString(int type) {

@@ -5,10 +5,12 @@ import javax.swing.*;
 public class Launcher {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            Minesweeper game = new Minesweeper(20, 20, 100);
-            Window gameWindow = new Window(game);
-            
-            System.out.println(game + "\n");
+            int rows = 20;
+            int columns = 20;
+            int mines = 100;
+
+            // Minesweeper game = new Minesweeper(rows, columns, mines);
+            Window gameWindow = new Window(rows, columns, mines);
         });
     }
 }
