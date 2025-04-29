@@ -146,9 +146,14 @@ public class Window {
     }
 
     public void tileFlagged(int row, int column) {
-        System.out.println("Tile at " + column + ", " + row + " flagged");
-
-        minesweeper.flagTile(row, column);
+        if (minesweeper.getFlagged()[row][column]) {
+            System.out.println("Tile at " + column + ", " + row + " unflagged");
+            minesweeper.unflagTile(row, column);
+        } else {
+            System.out.println("Tile at " + column + ", " + row + " flagged");
+            minesweeper.flagTile(row, column);
+        }
+        
         drawScreen();
     }
 
@@ -187,9 +192,6 @@ public class Window {
     public void drawScreen() {
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                System.out.println("Drawing tile at " + i + ", " + j);
-                System.out.println("Tile Visited: " + minesweeper.getVisited()[i][j] + "\n");
-
                 JLabel tile = (JLabel) panel.getComponent(i * width + j);
 
                 if (minesweeper.getVisited()[i][j]) {
@@ -210,15 +212,18 @@ public class Window {
                             String text = nearmines == 0 ? "" : String.valueOf(nearmines);
 
                             tile.setText(text);
+                            tile.setForeground(Color.BLACK);
+                            tile.setFont(new Font("Arial", Font.BOLD, 20));
+                            tile.setHorizontalAlignment(SwingConstants.CENTER);
+                            tile.setVerticalAlignment(SwingConstants.CENTER);
 
                             // Make a border around the tile, but only on the sides with unchecked neghbhors
                             boolean[] borderSides = new boolean[4];
 
-                            System.out.println("Checking if " + (i - 1) + " is greater than 0: " + (i - 1 >= 0));
-                            if (i - 1 >= 0 && !minesweeper.getVisited()[i - 1][j] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i - 1][j] == 1)) {borderSides[0] = true;}
-                            if (j - 1 >= 0 && !minesweeper.getVisited()[i][j - 1] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i][j - 1] == 1)) {borderSides[1] = true;}
-                            if (i + 1 < minesweeper.getWidth() && !minesweeper.getVisited()[i + 1][j] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i + 1][j] == 1)) {borderSides[2] = true;}
-                            if (j + 1 < minesweeper.getHeight() && !minesweeper.getVisited()[i][j + 1] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i][j + 1] == 1)) {borderSides[3] = true;}
+                            if (i - 1 >= 0) { if (!minesweeper.getVisited()[i - 1][j] || (minesweeper.getVisited()[i - 1][j] && minesweeper.getGrid()[i - 1][j] == 1)) {borderSides[0] = true;}}
+                            if (j - 1 >= 0) { if (!minesweeper.getVisited()[i][j - 1] || (minesweeper.getVisited()[i][j - 1] && minesweeper.getGrid()[i][j - 1] == 1)) {borderSides[1] = true;}}
+                            if (i + 1 < minesweeper.getWidth()) {if (!minesweeper.getVisited()[i + 1][j] || (minesweeper.getVisited()[i + 1][j] && minesweeper.getGrid()[i + 1][j] == 1)) {borderSides[2] = true;}}
+                            if (j + 1 < minesweeper.getHeight()) { if (!minesweeper.getVisited()[i][j + 1] || (minesweeper.getVisited()[i][j + 1] && minesweeper.getGrid()[i][j + 1] == 1)) {borderSides[3] = true;}}
 
                             Border border1 = BorderFactory.createCompoundBorder(
                                 borderSides[0] ? BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLACK) : BorderFactory.createEmptyBorder(),

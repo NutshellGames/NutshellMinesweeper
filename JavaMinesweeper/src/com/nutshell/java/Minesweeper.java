@@ -29,8 +29,12 @@ public class Minesweeper {
             int column = (int) (Math.random() * grid[row].length);
 
             // System.out.println(row + " " + column);
+            int rowDiff = Math.abs(row - startingRow);
+            int columnDiff = Math.abs(column - startingColumn);
 
-            if (grid[row][column] == 0 && ((row != startingRow && column != startingColumn) && (row != startingRow - 1 && column != startingColumn) && (row != startingRow && column != startingColumn - 1) && (row != startingRow - 1 && column != startingColumn - 1) && (row != startingRow - 1 && column != startingColumn + 1) && (row != startingRow + 1 && column != startingColumn) && (row != startingRow + 1 && column != startingColumn - 1) && (row != startingRow + 1 && column != startingColumn + 1) && (row != startingRow && column != startingColumn + 1))) {
+            boolean tooClose = (rowDiff <= 1 && columnDiff <= 1);
+
+            if (grid[row][column] == 0 && !tooClose) {
                 grid[row][column] = 1;
 
                 plantCount--;
