@@ -180,6 +180,48 @@ public class Minesweeper {
         return mines;
     }
 
+    public int totalMinesLeft() {
+        int totalMines = 0;
+
+        for (int row = 0; row < grid.length; row++) {
+            for (int column = 0; column < grid[row].length; column++) {
+                if (grid[row][column] == 1 && !flagged[row][column]) {
+                    totalMines++;
+                }
+            }
+        }
+
+        return totalMines;
+    }
+
+    public int totalFlags() {
+        int totalFlags = 0;
+
+        for (int row = 0; row < grid.length; row++) {
+            for (int column = 0; column < grid[row].length; column++) {
+                if (flagged[row][column]) {
+                    totalFlags++;
+                }
+            }
+        }
+
+        return totalFlags;
+    }
+
+    public int totalVisited() {
+        int totalVisited = 0;
+
+        for (int row = 0; row < grid.length; row++) {
+            for (int column = 0; column < grid[row].length; column++) {
+                if (visited[row][column]) {
+                    totalVisited++;
+                }
+            }
+        }
+
+        return totalVisited;
+    }
+
     public String toString(int type) {
         StringBuilder result = new StringBuilder();
 

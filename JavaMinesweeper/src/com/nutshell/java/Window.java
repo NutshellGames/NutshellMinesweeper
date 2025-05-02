@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.*;
 import javax.swing.*;
 import javax.swing.border.Border;
 
@@ -12,6 +12,7 @@ public class Window {
     JFrame frame;
     JPanel panel;
     JLabel gameOverText;
+    JLabel infoText;
 
     int width,height,mines;
     Minesweeper minesweeper;
@@ -21,8 +22,11 @@ public class Window {
     Color checkedColor = new Color(204, 234, 252);
     Color bombColor = Color.RED;
 
+    Color correctFlagColor = new Color(0, 255, 0);
+    Color incorrectFlagColor = new Color(255, 0, 0);
+
     // Get Images
-    URL bombURL = getClass().getClassLoader().getResource("com/nutshell/resources/images/bomb.webp");
+    URL bombURL = getClass().getClassLoader().getResource("com/nutshell/resources/images/bomb.png");
     URL boomURL = getClass().getClassLoader().getResource("com/nutshell/resources/images/boom.png");
     URL flagURL = getClass().getClassLoader().getResource("com/nutshell/resources/images/flag.png");
 
@@ -50,7 +54,7 @@ public class Window {
         frame.setLocationRelativeTo(null);
 
         panel = new JPanel();
-        frame.add(panel);
+        
         panel.setLayout(new GridLayout(width, height));
 
         gameOverText = new JLabel("Game Over!", SwingConstants.CENTER);
@@ -58,14 +62,50 @@ public class Window {
         gameOverText.setOpaque(false);
         gameOverText.setVisible(false);
 
-        frame.add(gameOverText);
+        infoText = new JLabel("0:00 | Flags: 0", SwingConstants.CENTER);
+        infoText.setFont(new Font("Arial", Font.BOLD, 20));
+        infoText.setOpaque(false);
+        infoText.setVisible(true);
 
-        frame.setComponentZOrder(gameOverText, 0);
-        frame.setComponentZOrder(panel, 1);
+        
+        frame.add(gameOverText, BorderLayout.SOUTH);
+        frame.add(infoText, BorderLayout.NORTH);
+        frame.add(panel, BorderLayout.CENTER);
 
         makeGrid(width, height);
 
         display();
+    }
+
+    public void startTimer() {
+        AtomicInteger time = new AtomicInteger(0);
+
+        // Start the timer
+        Thread timerThread = new Thread(() -> {
+            while (!gameOver) {
+                try {
+                    Thread.sleep(1000);
+                    
+                    time.incrementAndGet();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        timerThread.start();
+        
+        Thread updateThread = new Thread(() -> {
+            while (!gameOver) {
+                int minutes = time.get() / 60;
+                int seconds = time.get() % 60;
+
+                infoText.setText(String.format("%02d:%02d | Flags: %d", minutes, seconds, (mines - minesweeper.totalFlags())));
+            }
+            
+        });
+    
+        updateThread.start();
     }
 
     public void makeGrid(int width, int height) {
@@ -117,7 +157,7 @@ public class Window {
 
             if (minesweeper.getTile(row, column) == 1) {
                 System.out.println("Game Over");
-                gameLost();
+                gameFinished(false);
             } else {
                 if (visitedAlready && (minesweeper.getNearMines(row, column) - minesweeper.getNearFlags(row, column) <= 0)) {
                     minesweeper.visitAdjacentTiles(row, column);
@@ -125,68 +165,71 @@ public class Window {
 
                     if (minesweeper.getNearUnflaggedMines(row, column) > 0) {
                         System.out.println("Game Over");
-                        gameLost();
+                        gameFinished(false);
                     }
                 }
-                System.out.println("Safe");
+            }
+
+            if (minesweeper.totalVisited() == (width * height) - mines && !gameOver) {
+                System.out.println("Game Won");
+
+                if (minesweeper.totalFlags() != mines) {
+                    for (int i = 0; i < width; i++) {
+                        for (int j = 0; j < height; j++) {
+                            if (minesweeper.getGrid()[i][j] == 1 && !minesweeper.getFlagged()[i][j]) {
+                                minesweeper.flagTile(i, j);
+                            }
+                        }
+                    }
+                }
+
+                gameFinished(true);
             }
         } else {
-            System.out.println("Generating Game...");
-            
             this.minesweeper = new Minesweeper(width, height, mines, row, column);
             gameGenerated = true;
 
-            System.out.println("Game Generated");
-
             minesweeper.visitTile(row, column);
             
-
             drawScreen();
+            startTimer();
         }
     }
 
     public void tileFlagged(int row, int column) {
+        if (minesweeper.getVisited()[row][column]) {
+            return;
+        }
+
         if (minesweeper.getFlagged()[row][column]) {
-            System.out.println("Tile at " + column + ", " + row + " unflagged");
             minesweeper.unflagTile(row, column);
         } else {
-            System.out.println("Tile at " + column + ", " + row + " flagged");
             minesweeper.flagTile(row, column);
         }
         
         drawScreen();
     }
 
-    public void gameLost() {
+    public void gameFinished(boolean won) {
         gameOver = true;
+        gameWon = won;
+
+        drawScreen();
 
         AtomicInteger countdown = new AtomicInteger(5);
 
-        Thread countdownThread = new Thread(() -> {
-            gameOverText.setVisible(true);
-            gameOverText.setOpaque(true);
-            gameOverText.setBackground(Color.RED);
-            gameOverText.setForeground(Color.WHITE);
+        gameOverText.setVisible(true);
+        gameOverText.setOpaque(true);
+        gameOverText.setBackground(Color.RED);
 
-            frame.setComponentZOrder(panel, 1);
-            frame.setComponentZOrder(gameOverText, 1);
+        if (won) {
+            gameOverText.setText("You won!");
+            gameOverText.setBackground(Color.GREEN);
+        } else {
+            gameOverText.setText("Game Over!");
+        }
 
-            while (countdown.intValue() > 0) {
-                System.out.println("Application will close in " + countdown);
-                countdown.decrementAndGet();
-
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    System.exit(1);
-                }
-                    
-            }
-
-            System.exit(0);
-        });
-
-        countdownThread.start();
+        gameOverText.setForeground(Color.WHITE);
     }
 
     public void drawScreen() {
@@ -213,7 +256,7 @@ public class Window {
 
                             tile.setText(text);
                             tile.setForeground(Color.BLACK);
-                            tile.setFont(new Font("Arial", Font.BOLD, 20));
+                            tile.setFont(new Font("Arial", Font.BOLD, (tile.getWidth() / 2) - 5)); // Set font size based on tile width
                             tile.setHorizontalAlignment(SwingConstants.CENTER);
                             tile.setVerticalAlignment(SwingConstants.CENTER);
 
@@ -226,15 +269,15 @@ public class Window {
                             if (j + 1 < minesweeper.getHeight()) { if (!minesweeper.getVisited()[i][j + 1] || (minesweeper.getVisited()[i][j + 1] && minesweeper.getGrid()[i][j + 1] == 1)) {borderSides[3] = true;}}
 
                             Border border1 = BorderFactory.createCompoundBorder(
-                                borderSides[0] ? BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLACK) : BorderFactory.createEmptyBorder(),
-                                borderSides[1] ? BorderFactory.createMatteBorder(0, 1, 0, 0, Color.BLACK) : BorderFactory.createEmptyBorder()
-                            );  
-                            
+                                borderSides[0] ? BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLUE) : BorderFactory.createEmptyBorder(),
+                                borderSides[1] ? BorderFactory.createMatteBorder(0, 1, 0, 0, Color.BLUE) : BorderFactory.createEmptyBorder()
+                            );
+
                             Border border2 = BorderFactory.createCompoundBorder(
-                                borderSides[2] ? BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK) : BorderFactory.createEmptyBorder(),
-                                borderSides[3] ? BorderFactory.createMatteBorder(0, 0, 0, 1, Color.BLACK) : BorderFactory.createEmptyBorder()
-                            );  
-                            
+                                borderSides[2] ? BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLUE) : BorderFactory.createEmptyBorder(),
+                                borderSides[3] ? BorderFactory.createMatteBorder(0, 0, 0, 1, Color.BLUE) : BorderFactory.createEmptyBorder()
+                            );
+
                             Border border = BorderFactory.createCompoundBorder(border1, border2);
 
                             tile.setBorder(border);
@@ -243,9 +286,23 @@ public class Window {
                     
                 } else {
                     if (minesweeper.getFlagged()[i][j]) {
-                        tile.setBackground(checkedColor);
+                        if (gameOver && !gameWon) {
+                            if (minesweeper.getGrid()[i][j] == 1) {
+                                tile.setBackground(correctFlagColor);
+                            } else {
+                                tile.setBackground(incorrectFlagColor);
+                            }
+                        } else {
+                            tile.setBackground(checkedColor);
+                        }
                         
                         Image image = flagImage.getImage();
+                        Image scaledImage = image.getScaledInstance(tile.getWidth(), tile.getHeight(), Image.SCALE_SMOOTH);
+                        tile.setIcon(new ImageIcon(scaledImage));
+                    } else if (minesweeper.getGrid()[i][j] == 1 && gameOver && !gameWon) {
+                        tile.setBackground(Color.RED);
+
+                        Image image = bombImage.getImage();
                         Image scaledImage = image.getScaledInstance(tile.getWidth(), tile.getHeight(), Image.SCALE_SMOOTH);
                         tile.setIcon(new ImageIcon(scaledImage));
                     } else {
